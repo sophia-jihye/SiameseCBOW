@@ -6,7 +6,7 @@ import random as rd
 from .utils import padding
 from .preprocess import Preprocess
 
-columns=["sentenceId","category","sectionType","sectionCategory","section4","5","6","7","8","9","10","content"]
+columns=["documentId","sentenceId","sentence"]
 
 
 class PathLineDocuments():
@@ -34,65 +34,22 @@ class PathLineDocuments():
     def __iter__(self):
         """iterate through the files"""
         for file_name in self.input_files:
-            ids, document = self.read_tsv(file_name)
+            ids, sentences = self.read_tsv(file_name)
             if not self.is_counted:
-                self.num_valid_data += len(document) - len(np.unique(np.array(ids)[:,1]))*2
-            yield (ids, document)
+                self.num_valid_data += len(sentences) - len(np.unique(np.array(ids)[:,1]))*2
+            yield (ids, sentences)
         if not self.is_counted:
             print("loaded {} files.".format(len(self.input_files)))
             print("There are {} sentences available for training.".format(self.num_valid_data))
             self.is_counted=True
     
-    def read_tsv(self, document):
-        self._sentences=[]
-        self._ids=[]
-        self._section_titles=[]
-        document = pd.read_csv(document, delimiter='\t', header=None, names=columns)
-        sentence_ids = document["sentenceId"].values
-        contents = document["content"].values
-        section_types = document["sectionType"].values
-        sec_i = 0
-        par_i = 0
-        sen_i = 0
-        for sentence_id, content, section_type in zip(sentence_ids, contents, section_types):
-            s_id = sentence_id.split('-')
-            assert len(s_id) == 5
-            if s_id[1] == '0':
-                # main title
-                continue
-            elif section_type in ['ReferenceHeader', 'AcknowledgementHeader']:
-                # Appendix
-                break
-            else:
-                if section_type in ['Footnote', 'Caption']:
-                    # Don't add contents other than the main sentences
-                    continue
-                elif s_id[2]+s_id[3]+s_id[4]=='000':
-                    # Header
-                    title_match = re.match(r"[0-9]*[.{,1}[0-9]+]* .*", content)
-                    if title_match:
-                        # When the title match the type like '0.0.0 ***'
-                        title = title_match.group()
-                        pos = title.find(' ')
-                        sec_title = title[pos+1:]
-                    else:
-                        # When the section title has no numbers at its head
-                        sec_title = content
-                    sec_i += 1
-                    self._section_titles.append(sec_title)
-                    par_i=0
-                    sen_i=0
-                else:
-                    if par_i != int(s_id[3]):
-                        par_i = int(s_id[3])
-                    if isinstance(content, float):
-                        if np.isnan(content):
-                            pass
-                    else:
-                        content = Preprocess(content)
-                        self._sentences.append(content)
-                        self._ids.append([sec_i, par_i, sen_i])
-                    sen_i += 1
+    def read_tsv(self, filepath):
+        df = pd.read_csv(filepath, delimiter=',', header=0, names=columns)
+        
+        document_ids = df["documentId"].values
+        sentence_ids = df["sentenceId"].values
+        self._ids = np.column_stack((document_ids, sentence_ids))
+        self._sentences = df["sentence"].values
         return self._ids, self._sentences
         
 class DataLoader():

@@ -18,8 +18,8 @@ file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 input_dim = 1000 # Vocabulary size
 output_dim = 512 # Embedding dimension
 seq_length = 64 # Sentence length
-n_positive = 2 # Number of positice sample
-n_negative = 5 # Number of negative sample
+n_positive = 2 # Number of positice sample (target을 기준으로 직전 1개와 직후 1개를 similar sentence라고 봄)
+n_negative = 5 # Number of negative sample (target을 기준으로 직전, 직후를 제외한 나머지 모든 것들 중에 5개만 뽑음. Negative Sampling 개수.)
 batch_size = 32
 epochs = 1
 
